@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShieldCheck, CalendarDays } from 'lucide-react';
 
@@ -10,15 +10,17 @@ interface DashboardHeaderProps {
     isLoading: boolean;
 }
 
-function getGreeting(): string {
-    const hour = new Date().getHours();
+const subscribe = () => () => { };
+
+function getGreeting(date: Date): string {
+    const hour = date.getHours();
     if (hour < 12) return 'Buenos días';
     if (hour < 18) return 'Buenas tardes';
     return 'Buenas noches';
 }
 
-function getFormattedDate(): string {
-    return new Date().toLocaleDateString('es-CO', {
+function getFormattedDate(date: Date): string {
+    return date.toLocaleDateString('es-CO', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -27,15 +29,10 @@ function getFormattedDate(): string {
 }
 
 export function DashboardHeader({ total, processedOk, isLoading }: DashboardHeaderProps) {
-    const [mounted, setMounted] = useState(false);
-    const [greeting, setGreeting] = useState('Hola');
-    const [today, setToday] = useState('');
-
-    useEffect(() => {
-        setGreeting(getGreeting());
-        setToday(getFormattedDate());
-        setMounted(true);
-    }, []);
+    const clientNow = useSyncExternalStore(subscribe, () => new Date(), () => null);
+    const mounted = clientNow !== null;
+    const greeting = clientNow ? getGreeting(clientNow) : 'Hola';
+    const today = clientNow ? getFormattedDate(clientNow) : '';
 
     return (
         <div className="flex items-center justify-between gap-4 animate-slide-up">

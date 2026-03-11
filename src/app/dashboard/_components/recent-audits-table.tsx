@@ -118,7 +118,7 @@ export function RecentAuditsTable() {
         placeholderData: (prev) => prev,
     });
 
-    const items = resultsData?.data?.items ?? [];
+    const items = useMemo(() => resultsData?.data?.items ?? [], [resultsData]);
     const totalFromApi = resultsData?.data?.total ?? 0;
     const totalPages = resultsData?.data?.totalPages ?? 1;
 

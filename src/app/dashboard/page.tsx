@@ -71,7 +71,7 @@ export default function DashboardPage() {
     });
 
     // API response shape: { success, message, data: { items, total, page, pageSize, totalPages, filters } }
-    const items = resultsData?.data?.items ?? [];
+    const items = useMemo(() => resultsData?.data?.items ?? [], [resultsData]);
     const totalFromApi = resultsData?.data?.total ?? 0;
 
     const stateCounts = countAuditStates(items);

@@ -35,6 +35,7 @@ const statusItems = [
     { key: 'error', label: 'Error', colorFrom: '#ef4444', colorTo: '#f87171', textColor: 'text-red-400' },
     { key: 'pending', label: 'Pendientes', colorFrom: '#f59e0b', colorTo: '#fbbf24', textColor: 'text-amber-400' },
     { key: 'humanReview', label: 'Rev. Humana', colorFrom: '#d946ef', colorTo: '#e879f9', textColor: 'text-fuchsia-400' },
+    { key: 'unknown', label: 'Desconocido', colorFrom: '#64748b', colorTo: '#94a3b8', textColor: 'text-slate-400' },
 ] as const;
 
 export function StatusDistributionChart({
@@ -119,6 +120,7 @@ export function StatusDistributionChart({
         error,
         pending,
         humanReview,
+        unknown,
     };
 
     return (
