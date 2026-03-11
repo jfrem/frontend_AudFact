@@ -38,14 +38,29 @@ const navItems = [
     { label: 'Configuración', href: '/settings', icon: Settings },
 ];
 
+const breadcrumbLabelMap: Record<string, string> = {
+    audit: 'Auditoría',
+    batch: 'Batch',
+    single: 'Single',
+    history: 'Historial',
+    dashboard: 'Dashboard',
+    settings: 'Configuración',
+};
+
+const navigableBreadcrumbs = new Set(navItems.map((item) => item.href));
+
 function Breadcrumbs() {
     const pathname = usePathname();
 
     const segments = pathname.split('/').filter(Boolean);
     const crumbs = segments.map((seg, i) => {
         const href = '/' + segments.slice(0, i + 1).join('/');
-        const label = seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ');
-        return { label, href };
+        const label = breadcrumbLabelMap[seg] || seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ');
+        return {
+            label,
+            href,
+            isNavigable: navigableBreadcrumbs.has(href),
+        };
     });
 
     return (
@@ -53,7 +68,7 @@ function Breadcrumbs() {
             {crumbs.map((crumb, i) => (
                 <span key={crumb.href} className="flex items-center gap-1">
                     {i > 0 && <ChevronRight className="h-3 w-3" />}
-                    {i === crumbs.length - 1 ? (
+                    {i === crumbs.length - 1 || !crumb.isNavigable ? (
                         <span className="text-foreground font-medium">{crumb.label}</span>
                     ) : (
                         <Link href={crumb.href} className="hover:text-foreground transition-colors">

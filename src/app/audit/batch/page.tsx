@@ -259,6 +259,18 @@ interface BatchAuditResponse {
     totalProcessed: number;
 }
 
+interface PublicConfigResponse {
+    auditBatchMaxLimit: number;
+    auditBatchTimeoutMs: number;
+}
+
+interface BatchAuditRequest {
+    facNitSec: number;
+    date: string;
+    dateTo?: string;
+    limit: number;
+}
+
 interface AuditFinding {
     item: string;
     detalle: string;
@@ -321,6 +333,7 @@ function findAttachmentForDocumentLabel(
 // ── Página ──
 export default function AuditBatchPage() {
     const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
+    const [dateToStr, setDateToStr] = useState('');
     const [selectedClient, setSelectedClient] = useState<string>('');
     const [limit, setLimit] = useState<number>(10);
     const [viewingDoc, setViewingDoc] = useState<ViewerSelection | null>(null);
@@ -335,19 +348,31 @@ export default function AuditBatchPage() {
     });
     const clients = clientsData?.data || [];
 
+    const { data: publicConfigData } = useQuery({
+        queryKey: ['public-config'],
+        queryFn: () => api.get<PublicConfigResponse>('/config/public'),
+    });
+    const batchMaxLimit = publicConfigData?.data?.auditBatchMaxLimit || 100;
+
     // 2. Mutation to Run Batch Audit (Calls POST /audit)
     const batchMutation = useMutation({
-        mutationFn: (args: { facNitSec: number; date: string; limit: number }) =>
+        mutationFn: (args: BatchAuditRequest) =>
             api.post<BatchAuditResponse>('/audit', args),
     });
 
     const handleRunBatch = () => {
         if (selectedClient && dateStr && limit > 0) {
-            batchMutation.mutate({
-                facNitSec: parseInt(selectedClient),
+            const payload: BatchAuditRequest = {
+                facNitSec: parseInt(selectedClient, 10),
                 date: dateStr,
                 limit,
-            });
+            };
+
+            if (dateToStr) {
+                payload.dateTo = dateToStr;
+            }
+
+            batchMutation.mutate(payload);
         }
     };
 
@@ -437,7 +462,8 @@ export default function AuditBatchPage() {
         }
     };
 
-    const canExecute = !!selectedClient && !!dateStr && limit > 0 && limit <= 100;
+    const hasInvalidDateRange = !!dateStr && !!dateToStr && dateStr > dateToStr;
+    const canExecute = !!selectedClient && !!dateStr && limit > 0 && limit <= batchMaxLimit && !hasInvalidDateRange;
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto">
@@ -450,16 +476,15 @@ export default function AuditBatchPage() {
                             <CardTitle>Auditoría Masiva (Lotes)</CardTitle>
                             <CardDescription>
                                 Ejecuta la auditoría con IA para un volumen alto de dispensaciones.
-                                Selecciona cliente, fecha y cantidad de facturas a procesar.
+                                Selecciona cliente, fecha inicial, fecha final opcional y cantidad de facturas a procesar.
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* ... omitted for brevity in thought, but need whole block for tool */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                         {/* 1) Cliente con buscador */}
-                        <div className="space-y-2 md:col-span-1">
+                        <div className="space-y-2 md:col-span-2 xl:col-span-1">
                             <label className="text-sm font-medium flex items-center gap-1.5">
                                 <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                                 EPS / Cliente
@@ -479,7 +504,7 @@ export default function AuditBatchPage() {
                         <div className="space-y-2">
                             <label htmlFor="batch-date" className="text-sm font-medium flex items-center gap-1.5">
                                 <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                                Fecha del Lote
+                                Fecha inicial
                             </label>
                             <Input
                                 id="batch-date"
@@ -490,7 +515,26 @@ export default function AuditBatchPage() {
                             />
                         </div>
 
-                        {/* 3) Límite de facturas */}
+                        {/* 3) Fecha final opcional */}
+                        <div className="space-y-2">
+                            <label htmlFor="batch-date-to" className="text-sm font-medium flex items-center gap-1.5">
+                                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                                Fecha final
+                            </label>
+                            <Input
+                                id="batch-date-to"
+                                type="date"
+                                min={dateStr || undefined}
+                                value={dateToStr}
+                                onChange={(e) => setDateToStr(e.target.value)}
+                                className="w-full"
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Opcional. Si no se envía, el backend audita una sola fecha.
+                            </p>
+                        </div>
+
+                        {/* 4) Límite de facturas */}
                         <div className="space-y-2">
                             <label htmlFor="batch-limit" className="text-sm font-medium flex items-center gap-1.5">
                                 <Hash className="h-3.5 w-3.5 text-muted-foreground" />
@@ -500,19 +544,24 @@ export default function AuditBatchPage() {
                                 id="batch-limit"
                                 type="number"
                                 min={1}
-                                max={100}
+                                max={batchMaxLimit}
                                 value={limit}
                                 onChange={(e) => {
-                                    const v = parseInt(e.target.value);
-                                    if (!isNaN(v)) setLimit(Math.min(100, Math.max(1, v)));
+                                    const v = parseInt(e.target.value, 10);
+                                    if (!isNaN(v)) setLimit(Math.min(batchMaxLimit, Math.max(1, v)));
                                 }}
                                 className="w-full font-mono"
                             />
                             <p className="text-[11px] text-muted-foreground">
-                                Máximo 100 facturas por lote
+                                Máximo {batchMaxLimit} facturas por lote
                             </p>
                         </div>
                     </div>
+                    {hasInvalidDateRange && (
+                        <p className="mt-4 text-xs text-rose-500">
+                            La fecha final no puede ser menor que la fecha inicial.
+                        </p>
+                    )}
                 </CardContent>
             </Card>
 
@@ -537,8 +586,12 @@ export default function AuditBatchPage() {
                                 </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Fecha:</span>
+                                <span className="text-muted-foreground">Fecha inicial:</span>
                                 <span className="font-medium font-mono">{dateStr || '—'}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Fecha final:</span>
+                                <span className="font-medium font-mono">{dateToStr || '—'}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Facturas:</span>
@@ -569,7 +622,9 @@ export default function AuditBatchPage() {
                         {!canExecute && (
                             <div className="text-xs text-amber-400 flex items-center gap-1.5">
                                 <AlertCircle className="h-3.5 w-3.5" />
-                                Completa todos los campos para habilitar la ejecución
+                                {hasInvalidDateRange
+                                    ? 'Corrige el rango de fechas para habilitar la ejecución'
+                                    : 'Completa todos los campos requeridos para habilitar la ejecución'}
                             </div>
                         )}
                         <Button
