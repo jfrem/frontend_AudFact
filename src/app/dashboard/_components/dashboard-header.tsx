@@ -28,11 +28,18 @@ function getFormattedDate(date: Date): string {
     });
 }
 
+function getGreetingSnapshot(): string {
+    return getGreeting(new Date());
+}
+
+function getDateSnapshot(): string {
+    return getFormattedDate(new Date());
+}
+
 export function DashboardHeader({ total, processedOk, isLoading }: DashboardHeaderProps) {
-    const clientNow = useSyncExternalStore(subscribe, () => new Date(), () => null);
-    const mounted = clientNow !== null;
-    const greeting = clientNow ? getGreeting(clientNow) : 'Hola';
-    const today = clientNow ? getFormattedDate(clientNow) : '';
+    const greeting = useSyncExternalStore(subscribe, getGreetingSnapshot, () => 'Hola');
+    const today = useSyncExternalStore(subscribe, getDateSnapshot, () => '');
+    const mounted = today !== '';
 
     return (
         <div className="flex items-center justify-between gap-4 animate-slide-up">
