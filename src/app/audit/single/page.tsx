@@ -96,7 +96,7 @@ function AuditSingleContent() {
     const searchParams = useSearchParams();
     const initialFactura = searchParams.get('factura') || '';
 
-    const [facNro, setFacNro] = useState(initialFactura);
+    const [disDetNro, setDisDetNro] = useState(initialFactura);
     const [activeSearch, setActiveSearch] = useState(initialFactura);
     const [auditResult, setAuditResult] = useState<AuditResponse | null>(null);
     const [viewingDoc, setViewingDoc] = useState<SelectedDocument | null>(null);
@@ -129,7 +129,7 @@ function AuditSingleContent() {
     const auditMutation = useMutation({
         mutationFn: (id: string) =>
             api.post<AuditResponse>('/audit/single', {
-                FacNro: id
+                DisDetNro: id
             }),
         onSuccess: (res) => {
             const resultData = res.data;
@@ -165,8 +165,8 @@ function AuditSingleContent() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        if (facNro.trim()) {
-            setActiveSearch(facNro.trim());
+        if (disDetNro.trim()) {
+            setActiveSearch(disDetNro.trim());
             setAuditResult(null);
             setShowFullDetails(false);
         }
@@ -194,9 +194,9 @@ function AuditSingleContent() {
                             <div className="relative flex-1">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
-                                    placeholder="ID de Factura..."
-                                    value={facNro}
-                                    onChange={(e) => setFacNro(e.target.value)}
+                                    placeholder="ID de Dispensación (ej. D02260101795)..."
+                                    value={disDetNro}
+                                    onChange={(e) => setDisDetNro(e.target.value)}
                                     className="pl-9"
                                 />
                             </div>
