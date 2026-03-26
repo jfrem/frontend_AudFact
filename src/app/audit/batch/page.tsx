@@ -265,7 +265,7 @@ interface PublicConfigResponse {
 }
 
 interface BatchAuditRequest {
-    facNitSec: number;
+    facNitSec: string;
     date: string;
     dateTo?: string;
     limit: number;
@@ -363,7 +363,7 @@ export default function AuditBatchPage() {
     const handleRunBatch = () => {
         if (selectedClient && dateStr && limit > 0) {
             const payload: BatchAuditRequest = {
-                facNitSec: parseInt(selectedClient, 10),
+                facNitSec: String(selectedClient).trim(),
                 date: dateStr,
                 limit,
             };
